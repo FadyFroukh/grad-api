@@ -17,7 +17,7 @@ app.use(express.urlencoded({extended: true}));
 app.use(express.json());
 
 app.use(cors({
-  origin:"http://localhost:3000"
+  origin:"*"
 }))
 
 app.get("/",(req,res)=>{
@@ -40,7 +40,6 @@ app.post("/login",(req,res)=>{
     });
   }); 
 })
-
 
 
 //Users Endpoints
@@ -78,6 +77,14 @@ app.post("/users",(req,res)=>{
   
 })
 
+app.put("/users", async (req,res)=>{
+  var user = await User.findByIdAndUpdate(ObjectId(req.body.id),{
+    name:req.body.name,
+    password:req.body.password,
+    rule:req.body.rule
+  })
+})
+
 app.delete("/users/:id", async (req,res)=>{
   const user = await User.findById(req.params.id);
   await User.deleteOne(ObjectId(user.id));
@@ -111,11 +118,13 @@ app.put("/tables", async (req,res)=>{
 //Meals Endpoints
 
 app.get("/meals",async (req,res)=>{
-
     var meals = await Meal.find({});
     res.send(meals)
+})
 
-   
+app.get("/meals/:id",async (req,res)=>{
+  const meal = await Meal.findById(ObjectId(req.params.id));
+  res.send(meal);
 })
 
 app.post("/meals",(req,res)=>{
@@ -125,7 +134,8 @@ app.post("/meals",(req,res)=>{
       itemName:req.body.itemName,
       itemCat:req.body.itemCat,
       itemPrice:req.body.itemPrice,
-      itemInfo:req.body.itemInfo
+      itemInfo:req.body.itemInfo,
+      itemIngds:req.body.itemIngds
     }
   )
   console.log(meal);
@@ -142,11 +152,22 @@ app.post("/meals",(req,res)=>{
 
 })
 
+app.put("/meals", async (req,res)=>{
+  var meal = await Meal.findByIdAndUpdate(ObjectId(req.body.id),{
+    itemName:req.body.mealName,
+    itemCat:req.body.mealCat,
+    itemPrice:req.body.mealPrice,
+    itemInfo:req.body.mealInfo,
+    itemIngds:req.body.ingds
+  });
+})
+
 
 app.delete("/meals/:id", async (req,res)=>{
   const meal = await Meal.findById(req.params.id);
   await Meal.deleteOne(ObjectId(meal.id));
 })
+
 //Orders Endpoints
 
 app.get("/orders",(req,res)=>{
@@ -163,21 +184,26 @@ app.get("/orders",(req,res)=>{
 
 })
 
+app.get("/orders/:id", async (req,res)=>{
+  const orders = await Order.find({table:req.params.id});
+  res.send(orders);
+})
+
 app.post("/orders",async (req,res)=>{
 
   const item = new Order({
     itemName:req.body.itemName,
     itemPrice:req.body.itemPrice,
     addedAt:req.body.addedAt,
-    table:ObjectId(req.body.table)
+    table:ObjectId(req.body.table),
+    ingds:req.body.ingds
   });
 
   await item.save();
 
-
    const  user = await User.findById(req.body.table);
    user.orders.push(ObjectId(item._id));
-  await  user.save();
+   await  user.save();
    res.send(item);
 
 })
@@ -187,14 +213,14 @@ app.delete("/orders/:id", async (req,res)=>{
     const user = await User.findById(order.table);
     var index = user.orders.findIndex(a => a == order.id);
     user.orders.splice(index, 1);
-    await user.save();
+    user.save();
     await Order.deleteOne(ObjectId(order.id));
-    console.log(index);
-    res.send({"ok": "ok"});
 })
+
 
 //Listening for the port
 
 app.listen(port,()=>{
     console.log(`Listening on port : ${port}`);
 })
+
